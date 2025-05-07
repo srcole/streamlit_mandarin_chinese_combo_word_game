@@ -125,7 +125,7 @@ if st.session_state['button_clicked_next_word']:
 
 # Displays
 def display_header():
-    st.title("ggg")
+    st.title("Mandarin Chinese Combo Word Game")
     st.write("Instructions: using the 2-4 words provided, enter a compound vocabulary word and its English definition")
 
 def display_footer():
