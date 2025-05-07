@@ -12,7 +12,7 @@ session_state_var_defaults = {
     'n_streak': 0,
     'percent_correct': 0,
     'df': None,
-    'random_state': 0,
+    'random_state': np.random.randint(0, 1000),
     'page_icon': 'cn',
     'submitted_guess': False,
 
