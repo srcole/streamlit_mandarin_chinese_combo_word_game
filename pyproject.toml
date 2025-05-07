@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "streamlit-mandarin-chinese-combo-word-game"
+version = "0.1.0"
+description = ""
+authors = ["Scott"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+plotly = "^6.0.0"
+streamlit = "^1.42.1"
+pandas = "^2.2.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
