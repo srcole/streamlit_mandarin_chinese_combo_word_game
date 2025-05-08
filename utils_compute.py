@@ -28,6 +28,9 @@ def compute_chinese_guess_field_str(all_component_char_concat_str):
     
 
 def evaluate_english_guess(guess, correct_options):
+    # Force lowercase and parse multiple english translation options
+    guess = guess.lower()
+    correct_options = correct_options.lower()
     correct_options_list = correct_options.split(';')
 
     # Still mark as true if it's a substring of one of multiple guesses and shares more than 50% of characters
