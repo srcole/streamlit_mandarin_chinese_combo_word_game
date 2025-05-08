@@ -170,6 +170,14 @@ def display_not_in_game():
     st.write('See full vocabulary list at https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing')
     st.write('If you have any questions or suggestions, please feel free to contact me at scott.cole0@gmail.com')
 
+    st.divider()
+    st.header('Why build yet another vocab app?')
+    st.write('Despite hundreds of great resources for learning mandarin vocabulary, I think this new one takes more advantage of how I best memorize vocabulary:')
+    st.write("Re-constructing the English translation by breaking up the component characters and combining their individual semantic translations.")
+    st.write("-- Example #1: 半 (half) + 岛 (island) = 半岛 (peninsula)")
+    st.write("-- Example #2: 房子 (house) + 贷款 (loan) = 房贷 (mortgage)")
+	
+
 def display_feedback():
     if st.session_state['n_streak'] > 0:
         correct_feedback = 'CORRECT! :rabbit:'
