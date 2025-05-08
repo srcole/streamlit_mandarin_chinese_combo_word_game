@@ -29,6 +29,7 @@ session_state_var_defaults = {
     'button_clicked_restart_game': False,
     'button_clicked_submit': False,
     'button_clicked_next_word': False,
+    'button_clicked_skip': False,
     'button_clicked_wrongly_incorrect': False,
 
     'combo_word_guess': '',
@@ -91,16 +92,17 @@ def restart_game():
 
 
 def evaluate_guess():
-    st.session_state['submitted_guess'] = True
-    st.session_state['n_guess'] += 1
-    if compute_guess_result():
-        st.session_state['n_correct'] += 1
-        st.session_state['n_streak'] += 1
-    else:
-        st.session_state['n_streak_previous'] = st.session_state['n_streak']
-        st.session_state['n_streak'] = 0
-        
-    st.session_state['percent_correct'] = 100 * st.session_state['n_correct'] / st.session_state['n_guess']
+    if not st.session_state['submitted_guess']:
+        st.session_state['submitted_guess'] = True
+        st.session_state['n_guess'] += 1
+        if compute_guess_result():
+            st.session_state['n_correct'] += 1
+            st.session_state['n_streak'] += 1
+        else:
+            st.session_state['n_streak_previous'] = st.session_state['n_streak']
+            st.session_state['n_streak'] = 0
+            
+        st.session_state['percent_correct'] = 100 * st.session_state['n_correct'] / st.session_state['n_guess']
 
 
 def fix_wrongly_incorrect():
@@ -111,12 +113,13 @@ def fix_wrongly_incorrect():
 
 
 def go_to_next_word():
-    st.session_state['current_index'] += 1
-    if st.session_state['current_index'] < len(st.session_state['df']):
-        st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
-    st.session_state['current_english_guess'] = ''
-    st.session_state['combo_word_guess'] = ''
-    st.session_state['submitted_guess'] = False
+    if st.session_state['submitted_guess']:
+        st.session_state['current_index'] += 1
+        if st.session_state['current_index'] < len(st.session_state['df']):
+            st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
+        st.session_state['current_english_guess'] = ''
+        st.session_state['combo_word_guess'] = ''
+        st.session_state['submitted_guess'] = False
 
 
 # Button clicks
@@ -137,6 +140,11 @@ if st.session_state['button_clicked_submit']:
 
 if st.session_state['button_clicked_next_word']:
     st.session_state['button_clicked_next_word'] = False
+    go_to_next_word()
+
+if st.session_state['button_clicked_skip']:
+    st.session_state['button_clicked_skip'] = False
+    st.session_state['submitted_guess'] = True
     go_to_next_word()
 
 if st.session_state['button_clicked_wrongly_incorrect']:
@@ -225,7 +233,7 @@ def display_prompt():
             if not st.session_state['submitted_guess']:
                 col1_submit, col2_submit = st.columns([0.5, 0.5])
                 col1_submit.button(label = 'Submit', on_click=fn_button_clicked, kwargs={'button_name': 'submit'})
-                col2_submit.button(label = 'Skip', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
+                col2_submit.button(label = 'Skip', on_click=fn_button_clicked, kwargs={'button_name': 'skip'})
 
             else:
                 display_feedback()
@@ -250,6 +258,7 @@ def display_prompt():
             st.write(f"Combo-word: {st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
             st.button(label = 'Next word', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
             st.button(label = 'Back to home', on_click=fn_button_clicked, kwargs={'button_name': 'restart_game'})
+            st.session_state['submitted_guess'] = True
 
 
 # Set up the page
