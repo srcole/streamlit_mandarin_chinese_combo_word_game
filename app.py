@@ -68,9 +68,9 @@ def load_data():
         df = pd.read_csv(sheet_url)
         df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2', 'id'])
         df['priority'] = df['priority'].fillna(4)
-        st.session_state['df'] = df
+        st.session_state['df_raw'] = df
 
-    st.session_state['df'] = st.session_state['df'][st.session_state['df']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
+    st.session_state['df'] = st.session_state['df_raw'][st.session_state['df_raw']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'].sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'].loc[np.roll(st.session_state['df'].index, -st.session_state['starting_index'])].reset_index(drop=True)
     st.session_state['game_started'] = True
