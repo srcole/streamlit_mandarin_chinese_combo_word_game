@@ -168,7 +168,6 @@ def display_not_in_game():
     st.session_state['random_state'] = col2_advopt.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
     st.session_state['starting_index'] = col3_advopt.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
     st.write('See full vocabulary list at https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing')
-    st.write('If you have any questions or suggestions, please feel free to contact me at scott.cole0@gmail.com')
 
     st.divider()
     st.header('Why build yet another vocab app?')
@@ -176,6 +175,7 @@ def display_not_in_game():
     st.write("Re-constructing the English translation by breaking up the component characters and combining their individual semantic translations.")
     st.write("-- Example #1: 半 (half) + 岛 (island) = 半岛 (peninsula)")
     st.write("-- Example #2: 房子 (house) + 贷款 (loan) = 房贷 (mortgage)")
+    st.write('If you have any questions or suggestions, please feel free to contact me at scott.cole0@gmail.com')
 	
 
 def display_feedback():
