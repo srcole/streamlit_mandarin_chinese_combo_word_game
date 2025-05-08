@@ -16,9 +16,12 @@ session_state_var_defaults = {
     'n_guess': 0,
     'n_correct': 0,
     'n_streak': 0,
+    'n_streak_previous': 0,
     'percent_correct': 0,
     'df': None,
-    'random_state': np.random.randint(0, 1000),
+    'random_state': np.random.randint(0, 100000),
+    'starting_index': 0,
+    'max_priority_rating': 4,
     'page_icon': 'cn',
     'submitted_guess': False,
 
@@ -26,14 +29,16 @@ session_state_var_defaults = {
     'button_clicked_restart_game': False,
     'button_clicked_submit': False,
     'button_clicked_next_word': False,
+    'button_clicked_wrongly_incorrect': False,
 
     'combo_word_guess': '',
     'current_english_guess': '',
+    'all_component_english_concat_str': '',
     'problem_row': None,
 }
 
 gameplay_options = {
-    'component_both': ('[EASY] Components prompt: Both', 'Guess the Chinese word and its translation based on 2+ component words'),
+    'component_both': ('[EASY] Components prompt: Chinese + English', 'Guess the Chinese word and its translation based on 2+ component words'),
     'component_chinese': ('[MEDIUM] Components prompt: Chinese only', 'Guess the Chinese word and its translation based on 2+ component words'),
     'component_english': ('[HARD] Components prompt: English only', 'Guess the Chinese word and its translation based on 2+ component words'),
     'chinese_prompt': ('Chinese prompt', 'Guess the English translation'),
@@ -51,7 +56,7 @@ for var_name, var_default in session_state_var_defaults.items():
 page_configs = {
     # https://gist.github.com/rxaviers/7360908 - contains list of possible icons
     'page_icon': f":{st.session_state['page_icon']}:",
-    'page_title': "Mandarin Chinese Combo Word Game",
+    'page_title': "Chinese Combo-Word Game",
 }
 
 
@@ -60,10 +65,13 @@ def load_data():
         sheet_url = 'https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit#gid=0'
         sheet_url = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=')
         df = pd.read_csv(sheet_url)
-        df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2'])
+        df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2', 'id'])
+        df['priority'] = df['priority'].fillna(4)
         st.session_state['df'] = df
 
-    st.session_state['df'] = st.session_state['df'].sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
+    st.session_state['df'] = st.session_state['df'][st.session_state['df']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
+    st.session_state['df'] = st.session_state['df'].sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
+    st.session_state['df'] = st.session_state['df'].loc[np.roll(st.session_state['df'].index, -st.session_state['starting_index'])].reset_index(drop=True)
     st.session_state['game_started'] = True
     st.session_state['current_index'] = 0
     st.session_state['n_guess'] = 0
@@ -76,7 +84,7 @@ def load_data():
 
 def restart_game():
     # print('restart 1', session_state_var_defaults['game_started'])
-    st.session_state['random_state'] = np.random.randint(0, 1000)
+    st.session_state['random_state'] = np.random.randint(0, 100000)
     st.session_state['game_started'] = False
     st.session_state['submitted_guess'] = False
     st.session_state['page_icon'] = 'chicken'
@@ -89,9 +97,17 @@ def evaluate_guess():
         st.session_state['n_correct'] += 1
         st.session_state['n_streak'] += 1
     else:
+        st.session_state['n_streak_previous'] = st.session_state['n_streak']
         st.session_state['n_streak'] = 0
         
     st.session_state['percent_correct'] = 100 * st.session_state['n_correct'] / st.session_state['n_guess']
+
+
+def fix_wrongly_incorrect():
+    if st.session_state['n_streak'] == 0:
+        st.session_state['n_correct'] += 1
+        st.session_state['percent_correct'] = 100 * st.session_state['n_correct'] / st.session_state['n_guess']
+        st.session_state['n_streak'] = st.session_state['n_streak_previous'] + 1
 
 
 def go_to_next_word():
@@ -99,6 +115,7 @@ def go_to_next_word():
     if st.session_state['current_index'] < len(st.session_state['df']):
         st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
     st.session_state['current_english_guess'] = ''
+    st.session_state['combo_word_guess'] = ''
     st.session_state['submitted_guess'] = False
 
 
@@ -122,16 +139,20 @@ if st.session_state['button_clicked_next_word']:
     st.session_state['button_clicked_next_word'] = False
     go_to_next_word()
 
+if st.session_state['button_clicked_wrongly_incorrect']:
+    st.session_state['button_clicked_wrongly_incorrect'] = False
+    fix_wrongly_incorrect()
+
 
 # Displays
 def display_header():
-    st.title("Chinese Combo Word Game")
-
-def display_footer():
-    st.write("Github repo: https://github.com/srcole/streamlit_mandarin_chinese_combo_word_game")
-    st.write("Blog post: https://srcole.github.io/datablog/")
+    st.title("Chinese Combo-Word Game")
 
 def display_not_in_game():
+    st.write("Study vocabulary building upon simpler words!")
+    st.write("-- Example #1: 黄 (yellow) + 油 (oil) = 黄油 (butter)")
+    st.write("-- Example #2: 保安 (protect) + 危险 (danger) = 保险 (insurance)")
+    st.divider()
     st.session_state['gameplay_option'] = st.radio("Select gameplay option",
         options=gameplay_options.keys(),
         format_func=lambda x: gameplay_options[x][0],
@@ -140,6 +161,15 @@ def display_not_in_game():
     )
     st.button(label = 'Start game', on_click=fn_button_clicked, kwargs={'button_name': 'start_game'})
 
+    st.divider()
+    st.header('Advanced options')
+    col1_advopt, col2_advopt, col3_advopt = st.columns([0.35, 0.35, 0.3])
+    st.session_state['max_priority_rating'] = col1_advopt.number_input('Max priority rating', min_value=1, max_value=4, value=st.session_state['max_priority_rating'])
+    st.session_state['random_state'] = col2_advopt.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
+    st.session_state['starting_index'] = col3_advopt.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
+    st.write('See full vocabulary list at https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing')
+    st.write('If you have any questions or suggestions, please feel free to contact me at scott.cole0@gmail.com')
+
 def display_feedback():
     if st.session_state['n_streak'] > 0:
         correct_feedback = 'CORRECT! :rabbit:'
@@ -147,7 +177,7 @@ def display_feedback():
         correct_feedback = 'WRONG! :us:'
 
     st.write(f"{correct_feedback} Answer: ")
-    st.write(f"{st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
+    st.write(f"{st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']} ({st.session_state['all_component_english_concat_str']})")
 
 
 def display_prompt():
@@ -163,10 +193,13 @@ def display_prompt():
             n_component_words = compute_number_of_component_words()
             cols_prompt_words = st.columns(n_component_words)
             all_component_char_concat_str = ''
+            all_components_english = []
             for component_word_idx in range(n_component_words):
                 component_prompt_str = compute_component_printing_based_on_gameplay(component_word_idx)
                 cols_prompt_words[component_word_idx].write(component_prompt_str)
                 all_component_char_concat_str += st.session_state['problem_row'][f'word{component_word_idx+1}']
+                all_components_english.append(st.session_state['problem_row'][f'word{component_word_idx+1}_english'])
+            st.session_state['all_component_english_concat_str'] = ' + '.join(all_components_english)
 
             col1_guess, col2_guess = st.columns([0.5, 0.5])
             col1_guess.text_input(label=compute_chinese_guess_field_str(all_component_char_concat_str), max_chars=20, value='', key='combo_word_guess', autocomplete='off')
@@ -182,11 +215,15 @@ def display_prompt():
 
         if st.session_state['gameplay_option'] != 'review_mode':
             if not st.session_state['submitted_guess']:
-                st.button(label = 'Submit', on_click=fn_button_clicked, kwargs={'button_name': 'submit'})
+                col1_submit, col2_submit = st.columns([0.5, 0.5])
+                col1_submit.button(label = 'Submit', on_click=fn_button_clicked, kwargs={'button_name': 'submit'})
+                col2_submit.button(label = 'Skip', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
 
             else:
                 display_feedback()
-                st.button(label = 'Next word', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
+                col1_feedback, col2_feedback = st.columns([0.5, 0.5])
+                col1_feedback.button(label = 'Next word', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
+                col2_feedback.button(label = "Wrongly marked as 'incorrect'", on_click=fn_button_clicked, kwargs={'button_name': 'wrongly_incorrect'})
 
             st.header("Score")
             col1_score, col2_score, col3_score = st.columns([0.6, 0.2, 0.2])
@@ -202,7 +239,7 @@ def display_prompt():
                 component_prompt_str = compute_component_printing_based_on_gameplay(component_word_idx)
                 cols_prompt_words[component_word_idx].write(component_prompt_str)
 
-            st.write(f"Combo word: {st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
+            st.write(f"Combo-word: {st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
             st.button(label = 'Next word', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
             st.button(label = 'Back to home', on_click=fn_button_clicked, kwargs={'button_name': 'restart_game'})
 
@@ -214,4 +251,3 @@ if not st.session_state['game_started']:
     display_not_in_game()
 else:
     display_prompt()
-display_footer()
