@@ -237,7 +237,12 @@ def display_prompt():
     if st.session_state['gameplay_option'] in ['component_both', 'component_chinese', 'component_english']:
         # If in component mode, give each component and prompt for a definition guess
         for component_word_idx in range(n_component_words):
-            component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
+            if st.session_state['gameplay_option'] == 'component_english':
+                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}_english']}"
+            elif st.session_state['gameplay_option'] == 'component_chinese':
+                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']}"
+            else:
+                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
             cols_prompt_words[component_word_idx].write(component_prompt_str)
         st.session_state['all_component_english_concat_str'] = '(' + ' + '.join(all_components_english) + ')'
 
