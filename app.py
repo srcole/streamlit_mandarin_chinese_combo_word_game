@@ -184,11 +184,10 @@ def display_not_in_game():
 
     st.divider()
     st.header('Why build yet another vocab app?')
-    st.write('Despite hundreds of great resources for learning mandarin vocabulary, I think this new one takes more advantage of how I best memorize vocabulary:')
-    st.write("Re-constructing the English translation by breaking up the component characters and combining their individual semantic translations.")
+    st.write('Despite hundreds of great resources for learning Chinese vocabulary, I think this new one takes more advantage of how I best memorize vocabulary: Re-constructing the English translation by combining the semantic meanings of the individual component characters.')
     st.write("-- Example #1: 半 (half) + 岛 (island) = 半岛 (peninsula)")
     st.write("-- Example #2: 房子 (house) + 贷款 (loan) = 房贷 (mortgage)")
-    st.write('If you have any questions or suggestions, please feel free to contact me at scott.cole0@gmail.com')
+    st.write('If you have any questions or suggestions, or if you are willing to contribute to creating or improving vocabulary, please feel free to contact me at scott.cole0@gmail.com')
 	
 
 def display_feedback():
