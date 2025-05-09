@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from utils_compute import (
     compute_number_of_component_words,
-    compute_component_printing_based_on_gameplay,
     compute_chinese_guess_field_str,
     compute_guess_result
 )
@@ -23,6 +22,7 @@ session_state_var_defaults = {
     'random_state': np.random.randint(0, 100000),
     'starting_index': 0,
     'max_priority_rating': 4,
+    'min_known_rating': 1,
     'page_icon': 'cn',
     'submitted_guess': False,
 
@@ -69,9 +69,11 @@ def load_data():
         df = pd.read_csv(sheet_url)
         df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2', 'id'])
         df['priority'] = df['priority'].fillna(4)
+        df['known'] = df['known'].fillna(4)
         st.session_state['df_raw'] = df
 
     st.session_state['df'] = st.session_state['df_raw'][st.session_state['df_raw']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
+    st.session_state['df'] = st.session_state['df'][st.session_state['df']['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'].sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'].loc[np.roll(st.session_state['df'].index, -st.session_state['starting_index'])].reset_index(drop=True)
     st.session_state['game_started'] = True
@@ -172,11 +174,13 @@ def display_not_in_game():
 
     st.divider()
     st.header('Advanced options')
-    col1_advopt, col2_advopt, col3_advopt = st.columns([0.35, 0.35, 0.3])
-    st.session_state['max_priority_rating'] = col1_advopt.number_input('Max priority rating', min_value=1, max_value=4, value=st.session_state['max_priority_rating'])
-    st.session_state['random_state'] = col2_advopt.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
-    st.session_state['starting_index'] = col3_advopt.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
-    st.write('See full vocabulary list at https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing')
+    col1_advopt, col2_advopt = st.columns([0.5, 0.5])
+    col1_advorder, col2_advorder = st.columns([0.5, 0.5])
+    st.session_state['max_priority_rating'] = col1_advopt.number_input('Max. priority rating', min_value=1, max_value=4, value=st.session_state['max_priority_rating'])
+    st.session_state['min_known_rating'] = col1_advopt.number_input('Min. known rating', min_value=1, max_value=4, value=st.session_state['min_known_rating'])
+    st.session_state['random_state'] = col1_advorder.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
+    st.session_state['starting_index'] = col2_advorder.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
+    st.write('See full vocabulary list at [in this Google Sheet](https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing)')
 
     st.divider()
     st.header('Why build yet another vocab app?')
@@ -208,7 +212,7 @@ def display_full_vocab():
     st.write(f"Combo-word: {st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
     cols_prompt_words = st.columns(n_component_words)
     for component_word_idx in range(n_component_words):
-        component_prompt_str = compute_component_printing_based_on_gameplay(component_word_idx)
+        component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
         cols_prompt_words[component_word_idx].write(component_prompt_str)
 
 
@@ -234,7 +238,7 @@ def display_prompt():
     if st.session_state['gameplay_option'] in ['component_both', 'component_chinese', 'component_english']:
         # If in component mode, give each component and prompt for a definition guess
         for component_word_idx in range(n_component_words):
-            component_prompt_str = compute_component_printing_based_on_gameplay(component_word_idx)
+            component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
             cols_prompt_words[component_word_idx].write(component_prompt_str)
         st.session_state['all_component_english_concat_str'] = '(' + ' + '.join(all_components_english) + ')'
 

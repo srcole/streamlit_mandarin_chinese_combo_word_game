@@ -11,15 +11,6 @@ def compute_number_of_component_words():
         return 2
 
 
-def compute_component_printing_based_on_gameplay(component_word_idx):
-    if st.session_state['gameplay_option'] == 'component_chinese':
-        return f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']}"
-    elif st.session_state['gameplay_option'] == 'component_english':
-        return f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}_english']}"
-    else:
-        return f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
-
-
 def compute_chinese_guess_field_str(all_component_char_concat_str):
     if st.session_state['gameplay_option'] == 'component_english':
         return 'Chinese combo word'
