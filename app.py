@@ -22,6 +22,7 @@ session_state_var_defaults = {
     'random_state': np.random.randint(0, 100000),
     'starting_index': 0,
     'max_priority_rating': 4,
+    'max_quality_rating': 3,
     'min_known_rating': 1,
     'page_icon': 'cn',
     'submitted_guess': False,
@@ -70,10 +71,12 @@ def load_data():
         df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2', 'id'])
         df['priority'] = df['priority'].fillna(4)
         df['known'] = df['known'].fillna(4)
+        df['quality'] = df['quality'].fillna(2)
         st.session_state['df_raw'] = df
 
     st.session_state['df'] = st.session_state['df_raw'][st.session_state['df_raw']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'][st.session_state['df']['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
+    st.session_state['df'] = st.session_state['df'][st.session_state['df']['quality'] <= st.session_state['max_quality_rating']].reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'].sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
     st.session_state['df'] = st.session_state['df'].loc[np.roll(st.session_state['df'].index, -st.session_state['starting_index'])].reset_index(drop=True)
     st.session_state['game_started'] = True
@@ -174,10 +177,11 @@ def display_not_in_game():
 
     st.divider()
     st.header('Advanced options')
-    col1_advopt, col2_advopt = st.columns([0.5, 0.5])
+    col1_advopt, col2_advopt, col3_advopt = st.columns([0.33, 0.33, 0.34])
     col1_advorder, col2_advorder = st.columns([0.5, 0.5])
     st.session_state['max_priority_rating'] = col1_advopt.number_input('Max. priority rating', min_value=1, max_value=4, value=st.session_state['max_priority_rating'])
     st.session_state['min_known_rating'] = col2_advopt.number_input('Min. known rating', min_value=1, max_value=4, value=st.session_state['min_known_rating'])
+    st.session_state['max_quality_rating'] = col3_advopt.number_input('Max. quality rating', min_value=1, max_value=4, value=st.session_state['max_quality_rating'])
     st.session_state['random_state'] = col1_advorder.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
     st.session_state['starting_index'] = col2_advorder.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
     st.write('See full vocabulary list at [in this Google Sheet](https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing)')
