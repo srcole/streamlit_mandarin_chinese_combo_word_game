@@ -18,20 +18,34 @@ def compute_chinese_guess_field_str(all_component_char_concat_str):
         return f'Chinese combo word (subset of {all_component_char_concat_str})'
     
 
+def _longest_common_substring(s1, s2):
+    longest = ""
+    for i in range(len(s1)):
+        for j in range(len(s2)):
+            lcs_temp = 0
+            match = ""
+            while (i + lcs_temp < len(s1)) and (j + lcs_temp < len(s2)) and (s1[i + lcs_temp] == s2[j + lcs_temp]):
+                match += s1[i + lcs_temp]
+                lcs_temp += 1
+            if len(match) > len(longest):
+                longest = match
+    return longest
+    
+
 def evaluate_english_guess(guess, correct_options):
     # Force lowercase and parse multiple english translation options
     guess = guess.lower()
     correct_options = correct_options.lower()
     correct_options_list = correct_options.split(';')
-
-    # Still mark as true if it's a substring of one of multiple guesses and shares more than 50% of characters
-    for correct_option in correct_options_list:
-        if (guess in correct_option) and (len(guess) > (0.5 * len(correct_option))):
-            return True
     
-    # Still mark as true if the guess is a substring of any of the options
+    # Mark as correct if the longest shared substring between the guess and any correct option is:
+    # > 50% in length for both guess and answer
+    # > 75% in length for either guess and answer
     for correct_option in correct_options_list:
-        if (correct_option in guess) and (len(correct_option) > (0.5 * len(guess))):
+        longest_substr = _longest_common_substring(correct_option, guess)
+        if len(longest_substr) > (0.75 * len(guess)) or len(longest_substr) > (0.75 * len(correct_option)):
+            return True
+        if len(longest_substr) > (0.5 * len(guess)) and len(longest_substr) > (0.5 * len(correct_option)):
             return True
         
     return False
