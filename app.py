@@ -44,10 +44,10 @@ gameplay_options = {
     'component_both': ('[EASY] Components prompt: Chinese + English', 'Guess the Chinese word and its translation based on 2+ component words', ':cn:'),
     'component_chinese': ('[MEDIUM] Components prompt: Chinese only', 'Guess the Chinese word and its translation based on 2+ component words', ':rat:'),
     'component_english': ('[HARD] Components prompt: English only', 'Guess the Chinese word and its translation based on 2+ component words', ':cow:'),
-    'chinese_prompt': ('Chinese prompt', 'Guess the English translation', ':dog2:'),
-    'pinyin_prompt': ('Chinese+pinyin prompt', 'Guess the English translation', ':ram:'),
-    'english_prompt': ('English prompt', 'Guess the Chinese translation', ':tiger2:'),
-    'review_mode': ('Review mode', 'See vocabulary translation and root words, without guessing', ':hatched_chick:'),
+    'pinyin_prompt': ('[EASY] Non-combo prompt: Chinese + pinyin', 'Guess the English translation', ':ram:'),
+    'chinese_prompt': ('[MEDIUM] Non-combo prompt: Chinese only', 'Guess the English translation', ':dog2:'),
+    'english_prompt': ('[HARD] Non-combo prompt: English only', 'Guess the Chinese translation', ':tiger2:'),
+    'review_mode': ('Review mode', 'See vocabulary translation and component words, without guessing', ':hatched_chick:'),
 }
 
 # Populate session state with defaults
