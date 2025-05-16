@@ -164,8 +164,8 @@ def display_header():
 
 def display_not_in_game():
     st.write("Study vocabulary building upon simpler words!")
-    st.write("-- Example #1: 黄 (yellow) + 油 (oil) = 黄油 (butter)")
-    st.write("-- Example #2: 保安 (protect) + 危险 (danger) = 保险 (insurance)")
+    st.write("-- Example #1: 黄油 (butter) = 黄 (yellow) + 油 (oil)")
+    st.write("-- Example #2: 保险 (insurance) = 保安 (protect) + 危险 (danger)")
     st.divider()
     st.session_state['gameplay_option'] = st.radio("Select gameplay option",
         options=gameplay_options.keys(),
@@ -189,8 +189,8 @@ def display_not_in_game():
     st.divider()
     st.header('Why build yet another vocab app?')
     st.write('Despite hundreds of great resources for learning Chinese vocabulary, I think this new one takes more advantage of how I best memorize vocabulary: Re-constructing the English translation by combining the semantic meanings of the individual component characters.')
-    st.write("-- Example #1: 半 (half) + 岛 (island) = 半岛 (peninsula)")
-    st.write("-- Example #2: 房子 (house) + 贷款 (loan) = 房贷 (mortgage)")
+    st.write("-- Example #1: 半岛 (peninsula) = 半 (half) + 岛 (island)")
+    st.write("-- Example #2: 房贷 (mortgage) = 房子 (house) + 贷款 (loan)")
     st.write('If you have any questions or suggestions, or if you are willing to contribute to creating or improving vocabulary, please feel free to contact me at scott.cole0@gmail.com')
 	
 
