@@ -225,24 +225,24 @@ def display_review_mode():
 def display_prompt():
     # Compute the components
     n_component_words = compute_number_of_component_words()
-    cols_prompt_words = st.columns(n_component_words)
     all_components_english = []
     all_components_chinese = []
     for component_word_idx in range(n_component_words):
         all_components_english.append(st.session_state['problem_row'][f'word{component_word_idx+1}_english'])
         all_components_chinese.append(st.session_state['problem_row'][f'word{component_word_idx+1}'])
-    
-    # If in component mode, give each component
-    if st.session_state['gameplay_option'] == 'easy':
-        for component_word_idx in range(n_component_words):
-            component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
-            cols_prompt_words[component_word_idx].write(component_prompt_str)
 
     # Prompt for the guess
     if st.session_state['gameplay_option'] in ['easy', 'medium']:
         st.text_input(label=f"English translation of {st.session_state['problem_row'][f'chinese']} ({st.session_state['problem_row'][f'pinyin']})", max_chars=20, value='', key='current_english_guess', autocomplete='off')
     else:
         st.text_input(label=f"Chinese translation of '{st.session_state['problem_row'][f'english']}'", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
+
+    # If in component mode, give each component
+    if st.session_state['gameplay_option'] == 'easy':
+        cols_prompt_words = st.columns(n_component_words)
+        for component_word_idx in range(n_component_words):
+            component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
+            cols_prompt_words[component_word_idx].write(component_prompt_str)
 
     # Prompt to submit or skip
     col1_submit, col2_submit = st.columns([0.5, 0.5])
