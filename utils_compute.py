@@ -11,13 +11,6 @@ def compute_number_of_component_words():
         return 2
 
 
-def compute_chinese_guess_field_str(all_component_char_concat_str):
-    if st.session_state['gameplay_option'] == 'component_english':
-        return 'Chinese combo word'
-    else:
-        return f'Chinese combo word (subset of {all_component_char_concat_str})'
-    
-
 def _longest_common_substring(s1, s2):
     longest = ""
     for i in range(len(s1)):
@@ -52,13 +45,9 @@ def evaluate_english_guess(guess, correct_options):
     
 
 def compute_guess_result():
-    chinese_correct = (st.session_state['combo_word_guess'] == st.session_state['problem_row']['chinese'])
-    english_correct = evaluate_english_guess(st.session_state['current_english_guess'], st.session_state['problem_row']['english'])
-    if st.session_state['gameplay_option'] in ['component_both', 'component_chinese', 'component_english']:
-        return chinese_correct and english_correct
-    elif st.session_state['gameplay_option'] in ['chinese_prompt', 'pinyin_prompt']:
-        return english_correct
-    elif st.session_state['gameplay_option'] == 'english_prompt':
-        return chinese_correct
+    if st.session_state['gameplay_option'] in ['easy', 'medium']:
+        return evaluate_english_guess(st.session_state['current_english_guess'], st.session_state['problem_row']['english'])
+    elif st.session_state['gameplay_option'] == 'hard':
+        return (st.session_state['combo_word_guess'] == st.session_state['problem_row']['chinese'])
     else:
         raise ValueError(f"Gameplay option '{st.session_state['gameplay_option']}' not yet supported")

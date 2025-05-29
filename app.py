@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from utils_compute import (
     compute_number_of_component_words,
-    compute_chinese_guess_field_str,
     compute_guess_result
 )
 
@@ -11,7 +10,7 @@ from utils_compute import (
 # Set up session state
 session_state_var_defaults = {
     'game_started': False,
-    'gameplay_option': 'component_both',
+    'gameplay_option': 'easy',
     'current_index': 0,
     'n_guess': 0,
     'n_correct': 0,
@@ -36,18 +35,14 @@ session_state_var_defaults = {
 
     'combo_word_guess': '',
     'current_english_guess': '',
-    'all_component_english_concat_str': '',
     'problem_row': None,
 }
 
 gameplay_options = {
-    'component_both': ('[EASY] Components prompt: Chinese + English', 'Guess the Chinese word and its translation based on 2+ component words', ':cn:'),
-    'component_chinese': ('[MEDIUM] Components prompt: Chinese only', 'Guess the Chinese word and its translation based on 2+ component words', ':rat:'),
-    'component_english': ('[HARD] Components prompt: English only', 'Guess the Chinese word and its translation based on 2+ component words', ':cow:'),
-    'pinyin_prompt': ('[EASY] Non-combo prompt: Chinese + pinyin', 'Guess the English translation', ':ram:'),
-    'chinese_prompt': ('[MEDIUM] Non-combo prompt: Chinese only', 'Guess the English translation', ':dog2:'),
-    'english_prompt': ('[HARD] Non-combo prompt: English only', 'Guess the Chinese translation', ':tiger2:'),
-    'review_mode': ('Review mode', 'See vocabulary translation and component words, without guessing', ':hatched_chick:'),
+    'easy': ('EASY', 'Guess the English translation given component definitions', ':cn:'),
+    'medium': ('MEDIUM', 'Guess the English translation without hints', ':ram:'),
+    'hard': ('HARD', 'Guess the Chinese translation', ':cow:'),
+    'review_mode': ('REVIEW', 'See vocabulary translation and component words, without guessing', ':hatched_chick:'),
 }
 
 # Populate session state with defaults
@@ -236,33 +231,18 @@ def display_prompt():
     for component_word_idx in range(n_component_words):
         all_components_english.append(st.session_state['problem_row'][f'word{component_word_idx+1}_english'])
         all_components_chinese.append(st.session_state['problem_row'][f'word{component_word_idx+1}'])
-    st.session_state['all_component_english_concat_str'] = '(' + ' + '.join(all_components_english) + ')'
     
-    if st.session_state['gameplay_option'] in ['component_both', 'component_chinese', 'component_english']:
-        # If in component mode, give each component and prompt for a definition guess
+    # If in component mode, give each component
+    if st.session_state['gameplay_option'] == 'easy':
         for component_word_idx in range(n_component_words):
-            if st.session_state['gameplay_option'] == 'component_english':
-                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}_english']}"
-            elif st.session_state['gameplay_option'] == 'component_chinese':
-                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']}"
-            else:
-                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
+            component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
             cols_prompt_words[component_word_idx].write(component_prompt_str)
-        st.session_state['all_component_english_concat_str'] = '(' + ' + '.join(all_components_english) + ')'
 
-        col1_guess, col2_guess = st.columns([0.5, 0.5])
-        col1_guess.text_input(label=compute_chinese_guess_field_str(''.join(all_components_chinese)), max_chars=20, value='', key='combo_word_guess', autocomplete='off')
-        col2_guess.text_input(label='English definition', max_chars=20, value='', key='current_english_guess', autocomplete='off')
-
-    elif st.session_state['gameplay_option'] in ['chinese_prompt', 'pinyin_prompt', 'english_prompt']:
-        # If not in component mode, just prompt for a direct translation
-        if st.session_state['gameplay_option'] == 'chinese_prompt':
-            st.text_input(label=f"English translation of {st.session_state['problem_row'][f'chinese']}", max_chars=20, value='', key='current_english_guess', autocomplete='off')
-        elif st.session_state['gameplay_option'] == 'pinyin_prompt':
-            st.text_input(label=f"English translation of {st.session_state['problem_row'][f'chinese']} ({st.session_state['problem_row'][f'pinyin']})", max_chars=20, value='', key='current_english_guess', autocomplete='off')
-        else:
-            st.text_input(label=f"Chinese translation of '{st.session_state['problem_row'][f'english']}'", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
-        st.session_state['all_component_english_concat_str'] = '(' + ' + '.join(all_components_english) + ')'
+    # Prompt for the guess
+    if st.session_state['gameplay_option'] in ['easy', 'medium']:
+        st.text_input(label=f"English translation of {st.session_state['problem_row'][f'chinese']} ({st.session_state['problem_row'][f'pinyin']})", max_chars=20, value='', key='current_english_guess', autocomplete='off')
+    else:
+        st.text_input(label=f"Chinese translation of '{st.session_state['problem_row'][f'english']}'", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
 
     # Prompt to submit or skip
     col1_submit, col2_submit = st.columns([0.5, 0.5])
