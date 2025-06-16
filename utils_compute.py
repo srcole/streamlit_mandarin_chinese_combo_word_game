@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 
 
 def compute_number_of_component_words():
@@ -30,6 +31,9 @@ def evaluate_english_guess(guess, correct_options):
     guess = guess.lower()
     correct_options = correct_options.lower()
     correct_options_list = correct_options.split(';')
+
+    # Ignore anything in parentheses in english translation and trim
+    guess = re.sub(r'\s*\([^)]*\)', '', guess).strip()
     
     # Mark as correct if the longest shared substring between the guess and any correct option is:
     # > 50% in length for both guess and answer
