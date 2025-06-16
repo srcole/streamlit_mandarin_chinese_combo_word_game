@@ -21,7 +21,7 @@ session_state_var_defaults = {
     'random_state': np.random.randint(0, 100000),
     'starting_index': 0,
     'max_priority_rating': 4,
-    'max_quality_rating': 3,
+    'max_quality_rating': 1,
     'min_known_rating': 1,
     'page_icon': 'cn',
     'submitted_guess': False,
@@ -66,7 +66,7 @@ def load_data():
         df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2', 'id'])
         df['priority'] = df['priority'].fillna(4)
         df['known'] = df['known'].fillna(4)
-        df['quality'] = df['quality'].fillna(2)
+        df['quality'] = df['quality'].fillna(3)
         st.session_state['df_raw'] = df
 
     st.session_state['df'] = st.session_state['df_raw'][st.session_state['df_raw']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
@@ -207,10 +207,10 @@ def display_game_over():
 
 def display_full_vocab():
     n_component_words = compute_number_of_component_words()
-    st.write(f"Combo-word: {st.session_state['problem_row']['chinese']} ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
+    st.write(f"Combo-word: [{st.session_state['problem_row']['chinese']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row']['chinese']}) ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
     cols_prompt_words = st.columns(n_component_words)
     for component_word_idx in range(n_component_words):
-        component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
+        component_prompt_str = f"Word {component_word_idx+1}: [{st.session_state['problem_row'][f'word{component_word_idx+1}']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row'][f'word{component_word_idx+1}']}) ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
         cols_prompt_words[component_word_idx].write(component_prompt_str)
 
 
