@@ -1,9 +1,14 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
 from utils_compute import (
     compute_number_of_component_words,
     compute_guess_result
+)
+from utils_load_data import (
+    load_google_sheet,
+    compute_shared_character_df,
+    compute_shared_character_options,
+    filter_raw_data
 )
 
 
@@ -43,6 +48,7 @@ gameplay_options = {
     'medium': ('MEDIUM', 'Guess the English translation without hints', ':ram:'),
     'hard': ('HARD', 'Guess the Chinese translation', ':cow:'),
     'review_mode': ('REVIEW', 'See vocabulary translation and component words, without guessing', ':hatched_chick:'),
+    'review_shared': ('REVIEW SHARED CHARACTERS', 'See lists of words that all share a single character', ':hatched_chick:'),
 }
 
 # Populate session state with defaults
@@ -58,22 +64,8 @@ page_configs = {
 }
 
 
-def load_data():
-    if st.session_state['df'] is None:
-        sheet_url = 'https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit#gid=0'
-        sheet_url = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=')
-        df = pd.read_csv(sheet_url)
-        df = df.dropna(subset=['chinese', 'pinyin', 'english', 'word1', 'word2', 'id'])
-        df['priority'] = df['priority'].fillna(4)
-        df['known'] = df['known'].fillna(4)
-        df['quality'] = df['quality'].fillna(3)
-        st.session_state['df_raw'] = df
-
-    st.session_state['df'] = st.session_state['df_raw'][st.session_state['df_raw']['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
-    st.session_state['df'] = st.session_state['df'][st.session_state['df']['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
-    st.session_state['df'] = st.session_state['df'][st.session_state['df']['quality'] <= st.session_state['max_quality_rating']].reset_index(drop=True)
-    st.session_state['df'] = st.session_state['df'].sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
-    st.session_state['df'] = st.session_state['df'].loc[np.roll(st.session_state['df'].index, -st.session_state['starting_index'])].reset_index(drop=True)
+def game_start_reset_session_state_vars():
+    # Reset variables to indicate the start of a new game
     st.session_state['game_started'] = True
     st.session_state['current_index'] = 0
     st.session_state['n_guess'] = 0
@@ -82,6 +74,15 @@ def load_data():
     st.session_state['n_streak'] = 0
     st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
     st.session_state['page_icon'] = 'panda_face'
+
+
+def load_data():
+    if st.session_state['df'] is None:
+        st.session_state['df_raw'] = load_google_sheet()
+        st.session_state['df_shared_char'] = compute_shared_character_df(st.session_state['df_raw'])
+        st.session_state['df_shared_char_options'] = compute_shared_character_options(st.session_state['df_shared_char'])
+    st.session_state['df'] = filter_raw_data(st.session_state['df_raw'])
+    game_start_reset_session_state_vars()
 
 
 def restart_game():
@@ -222,6 +223,39 @@ def display_review_mode():
     st.session_state['submitted_guess'] = True
 
 
+def display_review_shared():
+    # How to select character?
+    st.session_state['shared_char_select_type'] = st.radio("How to select character?",
+        options=['Select character from list', 'Enter character'],
+        index=0,
+    )
+
+    # Select the character
+    if st.session_state['shared_char_select_type'] == 'Select character from list':
+        selection_options = st.session_state['df_shared_char_options'][st.session_state['df_shared_char_options']['n_words'] >= 10]
+        st.session_state['shared_char_selected'] = st.selectbox(
+            label='Select character',
+            options=selection_options,
+            # format_func=lambda x: gameplay_options[x][0],
+            index=0
+        )
+    else:
+        st.session_state['shared_char_selected'] = st.text_input(
+            label='Enter character',
+            value='牛'
+        )
+
+    # Compute words with that character and display them
+    st.session_state['shared_char_selected_words'] = st.session_state['df_shared_char'][st.session_state['df_shared_char']['shared_char'] == st.session_state['shared_char_selected']]
+    st.write(f'{len(st.session_state['shared_char_selected_words'])} words contain {st.session_state['shared_char_selected']}')
+    for _, row in st.session_state['shared_char_selected_words'].iterrows():
+        st.write(f"{row['chinese']}: {row['english']}")
+
+    # Return to home and housekeeping
+    st.button(label = 'Back to home', on_click=fn_button_clicked, kwargs={'button_name': 'restart_game'})
+    st.session_state['submitted_guess'] = True
+
+
 def display_prompt():
     # Compute the components
     n_component_words = compute_number_of_component_words()
@@ -274,6 +308,8 @@ elif st.session_state['current_index'] >= len(st.session_state['df']):
     display_game_over()
 elif st.session_state['gameplay_option'] == 'review_mode':
     display_review_mode()
+elif st.session_state['gameplay_option'] == 'review_shared':
+    display_review_shared()
 else:
     st.write(f"Vocabulary # {st.session_state['current_index'] + 1} / {len(st.session_state['df'])}")
     if st.session_state['submitted_guess']:
