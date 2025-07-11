@@ -207,12 +207,39 @@ def display_game_over():
 
 
 def display_full_vocab():
+    n_examples_show = 5
     n_component_words = compute_number_of_component_words()
     st.write(f"Combo-word: [{st.session_state['problem_row']['chinese']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row']['chinese']}) ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
     cols_prompt_words = st.columns(n_component_words)
     for component_word_idx in range(n_component_words):
         component_prompt_str = f"Word {component_word_idx+1}: [{st.session_state['problem_row'][f'word{component_word_idx+1}']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row'][f'word{component_word_idx+1}']}) ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
         cols_prompt_words[component_word_idx].write(component_prompt_str)
+
+    cols_example_words = st.columns(n_component_words)
+    for component_word_idx in range(n_component_words):
+        # get first character of overlap between component word and combo word
+        shared_char = st.session_state['problem_row'][f'word{component_word_idx+1}']
+        if len(shared_char) > 1:
+            not_found_shared_char, combo_word_idx, component_word_char_idx = True, 0, 0
+            while not_found_shared_char:
+                if st.session_state['problem_row']['chinese'][combo_word_idx] == shared_char[component_word_char_idx]:
+                    shared_char = shared_char[component_word_char_idx]
+                    not_found_shared_char = False
+                else:
+                    combo_word_idx += 1
+                    if combo_word_idx >= len(st.session_state['problem_row']['chinese']):
+                        combo_word_idx = 0
+                        component_word_char_idx += 1
+
+        df_this_char_other_words = st.session_state['df_shared_char'][st.session_state['df_shared_char']['shared_char'] == shared_char].reset_index(drop=True)
+        df_this_char_other_words = df_this_char_other_words[~df_this_char_other_words['chinese'].isin([shared_char, st.session_state['problem_row'][f'word{component_word_idx+1}'], st.session_state['problem_row']['chinese']])].reset_index(drop=True)
+        df_this_char_other_words = df_this_char_other_words[df_this_char_other_words['pinyin'] != ''].reset_index(drop=True)
+        component_prompt_str = f"{df_this_char_other_words.shape[0]} other words with '{shared_char}':"
+        for i_row, row in df_this_char_other_words.iterrows():
+            if i_row >= n_examples_show:
+                break
+            component_prompt_str += f"\n\n{row['chinese']} ({row['pinyin']}) - {row['english']}"
+        cols_example_words[component_word_idx].write(component_prompt_str)
 
 
 def display_review_mode():
