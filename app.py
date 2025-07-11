@@ -230,6 +230,16 @@ def display_review_shared():
         index=0,
     )
 
+    # Include phrases?
+    st.session_state['shared_char_select_phrase_inclusion'] = st.radio("What should be included?",
+        options=['Words only', 'Include phrases'],
+        index=0,
+    )
+    if st.session_state['shared_char_select_phrase_inclusion'] == 'Words only':
+        st.session_state['df_shared_char_use'] = st.session_state['df_shared_char'][st.session_state['df_shared_char']['type'].isin(['phrase', 'phrase_save']) == False].reset_index(drop=True)
+    else:
+        st.session_state['df_shared_char_use'] = st.session_state['df_shared_char'].copy()
+
     # Select the character
     if st.session_state['shared_char_select_type'] == 'Select character from list':
         selection_options = st.session_state['df_shared_char_options'][st.session_state['df_shared_char_options']['n_words'] >= 10]
@@ -246,7 +256,7 @@ def display_review_shared():
         )
 
     # Compute words with that character and display them
-    st.session_state['shared_char_selected_words'] = st.session_state['df_shared_char'][st.session_state['df_shared_char']['shared_char'] == st.session_state['shared_char_selected']]
+    st.session_state['shared_char_selected_words'] = st.session_state['df_shared_char_use'][st.session_state['df_shared_char_use']['shared_char'] == st.session_state['shared_char_selected']]
     st.write(f'{len(st.session_state['shared_char_selected_words'])} words contain {st.session_state['shared_char_selected']}')
     for _, row in st.session_state['shared_char_selected_words'].iterrows():
         st.write(f"{row['chinese']}: {row['english']}")
