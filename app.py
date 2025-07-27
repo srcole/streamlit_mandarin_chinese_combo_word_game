@@ -180,7 +180,6 @@ def display_not_in_game():
     st.session_state['max_quality_rating'] = col3_advopt.number_input('Max. quality rating', min_value=1, max_value=4, value=st.session_state['max_quality_rating'])
     st.session_state['random_state'] = col1_advorder.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
     st.session_state['starting_index'] = col2_advorder.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
-    st.write('See full vocabulary list at [in this Google Sheet](https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit?usp=sharing)')
 
     st.divider()
     st.header('Why build yet another vocab app?')
