@@ -8,26 +8,53 @@ from utils_load_data import (
     load_google_sheet,
     compute_shared_character_df,
     compute_shared_character_options,
-    filter_raw_data
+    filter_raw_data,
+    filter_raw_data_vocab
 )
 
 
 # Set up session state
 session_state_var_defaults = {
     'game_started': False,
-    'gameplay_option': 'easy',
+    'gameplay_option': 'vocab',
     'current_index': 0,
     'n_guess': 0,
     'n_correct': 0,
     'n_streak': 0,
     'n_streak_previous': 0,
     'percent_correct': 0,
+    'n_component_words': 0,
     'df': None,
     'random_state': np.random.randint(0, 100000),
     'starting_index': 0,
-    'max_priority_rating': 4,
-    'max_quality_rating': 1,
-    'min_known_rating': 1,
+    'max_priority_rating': 2,
+    'max_quality_rating': 5,
+    'min_known_rating': 3,
+    'n_example_words_display': 5,
+    'vocab_types_all': [
+        'combo', 'no combo', 'two word', 'suffix', 'prefix', 'abbreviation', 'single char',
+        'phrase', 'phrase_save', 'part sent', 'sentence'
+        ],
+    'vocab_types_eligible': [
+        'combo', 'no combo', 'two word', 'suffix', 'prefix', 'abbreviation', 'single char'],
+    'vocab_cat_all': [
+        '', 'food', 'general', 'career', 'characteristic', 'society', 'health',
+        'people', 'life', 'electronics', 'feeling', 'travel', 'outdoor', 'language',
+        'amount', 'time', 'verb', 'hobbies', 'china', 'shopping', 'animal', 'clothes',
+        'thing', 'place', 'adjective', 'directions', 'industry', 'change', 'noun',
+        'saying', 'phrase'
+        ],
+    'vocab_cat_eligible': [
+        '', 'food', 'general', 'career', 'characteristic', 'society', 'health',
+        'people', 'life', 'electronics', 'feeling', 'travel', 'outdoor', 'language',
+        'amount', 'time', 'verb', 'hobbies', 'china', 'shopping', 'animal', 'clothes',
+        'thing', 'place', 'adjective', 'directions', 'industry', 'change', 'noun',
+        'saying', 'phrase'
+        ],
+    'prompt_show_chinese': 'Yes',
+    'prompt_show_pinyin': 'Yes',
+    'prompt_show_chinese_combo': 'Yes',
+    'prompt_show_english_combo': 'Yes',
     'page_icon': 'cn',
     'submitted_guess': False,
 
@@ -44,11 +71,10 @@ session_state_var_defaults = {
 }
 
 gameplay_options = {
-    'easy': ('EASY', 'Guess the English translation given component definitions', ':cn:'),
-    'medium': ('MEDIUM', 'Guess the English translation without hints', ':ram:'),
-    'hard': ('HARD', 'Guess the Chinese translation', ':cow:'),
+    'vocab': ('GUESS', 'Guess the vocabulary translation (settings below)', ':cow:'),
     'review_mode': ('REVIEW', 'See vocabulary translation and component words, without guessing', ':hatched_chick:'),
-    'review_shared': ('REVIEW SHARED CHARACTERS', 'See lists of words that all share a single character', ':hatched_chick:'),
+    'review_shared': ('SHARED CHARACTERS', 'See lists of words that all share a single character', ':hatched_chick:'),
+    'easy': ('OLD', '[legacy version] Guess the English translation given component definitions', ':cn:'),
 }
 
 # Populate session state with defaults
@@ -81,7 +107,10 @@ def load_data():
         st.session_state['df_raw'] = load_google_sheet()
         st.session_state['df_shared_char'] = compute_shared_character_df(st.session_state['df_raw'])
         st.session_state['df_shared_char_options'] = compute_shared_character_options(st.session_state['df_shared_char'])
-    st.session_state['df'] = filter_raw_data(st.session_state['df_raw'])
+    if st.session_state['gameplay_option'] == 'easy':
+        st.session_state['df'] = filter_raw_data(st.session_state['df_raw'])
+    else:
+        st.session_state['df'] = filter_raw_data_vocab(st.session_state['df_raw'])
     game_start_reset_session_state_vars()
 
 
@@ -172,12 +201,53 @@ def display_not_in_game():
     st.button(label = 'Start game', on_click=fn_button_clicked, kwargs={'button_name': 'start_game'})
 
     st.divider()
-    st.header('Advanced options')
+    st.header('Vocab game options')
+
+    col1a_vocopt, col1b_vocopt = st.columns([0.5, 0.5])
+    st.session_state['prompt_show_chinese'] = col1a_vocopt.selectbox(
+        label='Prompt Chinese characters',
+        options=['Yes', 'No'],
+        index=0 if st.session_state['prompt_show_chinese'] is 'Yes' else 1,
+    )
+    st.session_state['prompt_show_pinyin'] = col1b_vocopt.selectbox(
+        label='Prompt pinyin too',
+        options=['Yes', 'No'],
+        index=0 if st.session_state['prompt_show_pinyin'] is 'Yes' else 1,
+    )
+
+    col2a_vocopt, col2b_vocopt, col2c_vocopt = st.columns([0.33, 0.33, 0.34])
+    st.session_state['prompt_show_chinese_combo'] = col2a_vocopt.selectbox(
+        label='Prompt component word Chinese',
+        options=['Yes', 'No'],
+        index=0 if st.session_state['prompt_show_chinese_combo'] is 'Yes' else 1,
+    )
+    st.session_state['prompt_show_english_combo'] = col2b_vocopt.selectbox(
+        label='Prompt component English too',
+        options=['Yes', 'No'],
+        index=0 if st.session_state['prompt_show_english_combo'] is 'Yes' else 1,
+    )
+    st.session_state['n_example_words_display'] = col2c_vocopt.number_input('\# shared character words displayed', min_value=0, max_value=20, value=st.session_state['n_example_words_display'])
+
     col1_advopt, col2_advopt, col3_advopt = st.columns([0.33, 0.33, 0.34])
+    st.session_state['max_priority_rating'] = col1_advopt.number_input('Max. priority rating', min_value=1, max_value=5, value=st.session_state['max_priority_rating'])
+    st.session_state['min_known_rating'] = col2_advopt.number_input('Min. known rating', min_value=1, max_value=5, value=st.session_state['min_known_rating'])
+    st.session_state['max_quality_rating'] = col3_advopt.number_input('Max. combo quality rating', min_value=1, max_value=5, value=st.session_state['max_quality_rating'])
+
+    col3a_vocopt, col3b_vocopt = st.columns([0.5, 0.5])
+    st.session_state['vocab_types_eligible'] = col3a_vocopt.multiselect(
+        label='Types of vocabulary to test',
+        options=st.session_state['vocab_types_all'],
+        default=st.session_state['vocab_types_eligible'],
+    )
+    st.session_state['vocab_cat_eligible'] = col3b_vocopt.multiselect(
+        label='Categories of vocabulary to test',
+        options=st.session_state['vocab_cat_all'],
+        default=st.session_state['vocab_cat_eligible'],
+    )
+
+    st.divider()
+    st.header('Advanced options')
     col1_advorder, col2_advorder = st.columns([0.5, 0.5])
-    st.session_state['max_priority_rating'] = col1_advopt.number_input('Max. priority rating', min_value=1, max_value=4, value=st.session_state['max_priority_rating'])
-    st.session_state['min_known_rating'] = col2_advopt.number_input('Min. known rating', min_value=1, max_value=4, value=st.session_state['min_known_rating'])
-    st.session_state['max_quality_rating'] = col3_advopt.number_input('Max. quality rating', min_value=1, max_value=4, value=st.session_state['max_quality_rating'])
     st.session_state['random_state'] = col1_advorder.number_input('Random state', min_value=0, max_value=100000, value=st.session_state['random_state'])
     st.session_state['starting_index'] = col2_advorder.number_input('Starting index', min_value=0, max_value=100000, value=st.session_state['starting_index'])
 
@@ -206,39 +276,56 @@ def display_game_over():
 
 
 def display_full_vocab():
-    n_examples_show = 5
-    n_component_words = compute_number_of_component_words()
-    st.write(f"Combo-word: [{st.session_state['problem_row']['chinese']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row']['chinese']}) ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
-    cols_prompt_words = st.columns(n_component_words)
-    for component_word_idx in range(n_component_words):
-        component_prompt_str = f"Word {component_word_idx+1}: [{st.session_state['problem_row'][f'word{component_word_idx+1}']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row'][f'word{component_word_idx+1}']}) ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
-        cols_prompt_words[component_word_idx].write(component_prompt_str)
+    st.session_state['n_component_words'] = compute_number_of_component_words()
+    st.write(f"[{st.session_state['problem_row']['chinese']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row']['chinese']}) ({st.session_state['problem_row']['pinyin']}) - {st.session_state['problem_row']['english']}")
+    if st.session_state['n_component_words'] > 0:
+        cols_prompt_words = st.columns(st.session_state['n_component_words'])
+        for component_word_idx in range(st.session_state['n_component_words']):
+            component_prompt_str = f"Component word {component_word_idx+1}: [{st.session_state['problem_row'][f'word{component_word_idx+1}']}](https://www.dong-chinese.com/dictionary/search/{st.session_state['problem_row'][f'word{component_word_idx+1}']}) ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
+            cols_prompt_words[component_word_idx].write(component_prompt_str)
 
-    cols_example_words = st.columns(n_component_words)
-    for component_word_idx in range(n_component_words):
-        # get first character of overlap between component word and combo word
-        shared_char = st.session_state['problem_row'][f'word{component_word_idx+1}']
-        if len(shared_char) > 1:
-            not_found_shared_char, combo_word_idx, component_word_char_idx = True, 0, 0
-            while not_found_shared_char:
-                if st.session_state['problem_row']['chinese'][combo_word_idx] == shared_char[component_word_char_idx]:
-                    shared_char = shared_char[component_word_char_idx]
-                    not_found_shared_char = False
-                else:
-                    combo_word_idx += 1
-                    if combo_word_idx >= len(st.session_state['problem_row']['chinese']):
-                        combo_word_idx = 0
-                        component_word_char_idx += 1
+        if st.session_state['n_example_words_display'] > 0:
+            cols_example_words = st.columns(st.session_state['n_component_words'])
+            for component_word_idx in range(st.session_state['n_component_words']):
+                # get first character of overlap between component word and combo word
+                shared_char = st.session_state['problem_row'][f'word{component_word_idx+1}']
+                if len(shared_char) > 1:
+                    not_found_shared_char, combo_word_idx, component_word_char_idx = True, 0, 0
+                    while not_found_shared_char:
+                        if st.session_state['problem_row']['chinese'][combo_word_idx] == shared_char[component_word_char_idx]:
+                            shared_char = shared_char[component_word_char_idx]
+                            not_found_shared_char = False
+                        else:
+                            combo_word_idx += 1
+                            if combo_word_idx >= len(st.session_state['problem_row']['chinese']):
+                                combo_word_idx = 0
+                                component_word_char_idx += 1
 
-        df_this_char_other_words = st.session_state['df_shared_char'][st.session_state['df_shared_char']['shared_char'] == shared_char].reset_index(drop=True)
-        df_this_char_other_words = df_this_char_other_words[~df_this_char_other_words['chinese'].isin([shared_char, st.session_state['problem_row'][f'word{component_word_idx+1}'], st.session_state['problem_row']['chinese']])].reset_index(drop=True)
-        df_this_char_other_words = df_this_char_other_words[df_this_char_other_words['pinyin'] != ''].reset_index(drop=True)
-        component_prompt_str = f"{df_this_char_other_words.shape[0]} other words with '{shared_char}':"
-        for i_row, row in df_this_char_other_words.iterrows():
-            if i_row >= n_examples_show:
-                break
-            component_prompt_str += f"\n\n{row['chinese']} ({row['pinyin']}) - {row['english']}"
-        cols_example_words[component_word_idx].write(component_prompt_str)
+                df_this_char_other_words = st.session_state['df_shared_char'][st.session_state['df_shared_char']['shared_char'] == shared_char].reset_index(drop=True)
+                df_this_char_other_words = df_this_char_other_words[~df_this_char_other_words['chinese'].isin([shared_char, st.session_state['problem_row'][f'word{component_word_idx+1}'], st.session_state['problem_row']['chinese']])].reset_index(drop=True)
+                df_this_char_other_words = df_this_char_other_words[df_this_char_other_words['pinyin'] != ''].reset_index(drop=True)
+                component_prompt_str = f"{df_this_char_other_words.shape[0]} other words with '{shared_char}':"
+                for i_row, row in df_this_char_other_words.iterrows():
+                    if i_row >= st.session_state['n_example_words_display']:
+                        break
+                    component_prompt_str += f"\n\n{row['chinese']} ({row['pinyin']}) - {row['english']}"
+                cols_example_words[component_word_idx].write(component_prompt_str)
+
+    else:
+        if st.session_state['n_example_words_display'] > 0:
+            st.session_state['n_characters'] = len(st.session_state['problem_row']['chinese'])
+            cols_example_words = st.columns(st.session_state['n_characters'])
+            for component_word_idx in range(st.session_state['n_characters']):
+                shared_char = st.session_state['problem_row']['chinese'][component_word_idx]
+
+                df_this_char_other_words = st.session_state['df_shared_char'][st.session_state['df_shared_char']['shared_char'] == shared_char].reset_index(drop=True)
+                df_this_char_other_words = df_this_char_other_words[df_this_char_other_words['pinyin'] != ''].reset_index(drop=True)
+                component_prompt_str = f"{df_this_char_other_words.shape[0]} other words with '{shared_char}':"
+                for i_row, row in df_this_char_other_words.iterrows():
+                    if i_row >= st.session_state['n_example_words_display']:
+                        break
+                    component_prompt_str += f"\n\n{row['chinese']} ({row['pinyin']}) - {row['english']}"
+                cols_example_words[component_word_idx].write(component_prompt_str)
 
 
 def display_review_mode():
@@ -272,7 +359,6 @@ def display_review_shared():
         st.session_state['shared_char_selected'] = st.selectbox(
             label='Select character',
             options=selection_options,
-            # format_func=lambda x: gameplay_options[x][0],
             index=0
         )
     else:
@@ -294,25 +380,62 @@ def display_review_shared():
 
 def display_prompt():
     # Compute the components
-    n_component_words = compute_number_of_component_words()
+    st.session_state['n_component_words'] = compute_number_of_component_words()
     all_components_english = []
     all_components_chinese = []
-    for component_word_idx in range(n_component_words):
+    for component_word_idx in range(st.session_state['n_component_words']):
         all_components_english.append(st.session_state['problem_row'][f'word{component_word_idx+1}_english'])
         all_components_chinese.append(st.session_state['problem_row'][f'word{component_word_idx+1}'])
 
     # Prompt for the guess
-    if st.session_state['gameplay_option'] in ['easy', 'medium']:
+    if st.session_state['gameplay_option'] == 'easy':
         st.text_input(label=f"English translation of {st.session_state['problem_row'][f'chinese']} ({st.session_state['problem_row'][f'pinyin']})", max_chars=20, value='', key='current_english_guess', autocomplete='off')
     else:
         st.text_input(label=f"Chinese translation of '{st.session_state['problem_row'][f'english']}'", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
 
     # If in component mode, give each component
     if st.session_state['gameplay_option'] == 'easy':
-        cols_prompt_words = st.columns(n_component_words)
-        for component_word_idx in range(n_component_words):
+        cols_prompt_words = st.columns(st.session_state['n_component_words'])
+        for component_word_idx in range(st.session_state['n_component_words']):
             component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
             cols_prompt_words[component_word_idx].write(component_prompt_str)
+
+    # Prompt to submit or skip
+    col1_submit, col2_submit = st.columns([0.5, 0.5])
+    col1_submit.button(label = 'Submit', on_click=fn_button_clicked, kwargs={'button_name': 'submit'})
+    col2_submit.button(label = 'Skip', on_click=fn_button_clicked, kwargs={'button_name': 'skip'})
+
+
+def display_vocab_prompt():
+    # Prompt for the guess
+    if st.session_state['prompt_show_chinese'] == 'Yes':
+        if st.session_state['prompt_show_pinyin'] == 'Yes':
+            prompt_pinyin_str = f" ({st.session_state['problem_row']['pinyin']})"
+        else:
+            prompt_pinyin_str = ''
+        st.text_input(label=f"{st.session_state['problem_row'][f'chinese']}{prompt_pinyin_str} in English:", max_chars=20, value='', key='current_english_guess', autocomplete='off')
+    else:
+        st.text_input(label=f"'{st.session_state['problem_row'][f'english']}' in Chinese:", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
+
+    # Compute the components
+    st.session_state['n_component_words'] = compute_number_of_component_words()
+    if st.session_state['n_component_words'] > 0:
+        all_components_english = []
+        all_components_chinese = []
+        for component_word_idx in range(st.session_state['n_component_words']):
+            all_components_english.append(st.session_state['problem_row'][f'word{component_word_idx+1}_english'])
+            all_components_chinese.append(st.session_state['problem_row'][f'word{component_word_idx+1}'])
+
+        # If in component mode, give each component
+        if st.session_state['prompt_show_chinese_combo'] == 'Yes':
+            cols_prompt_words = st.columns(st.session_state['n_component_words'])
+            for component_word_idx in range(st.session_state['n_component_words']):
+                if st.session_state['prompt_show_english_combo'] == 'Yes':
+                    component_prompt_english_str = f" ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
+                else:
+                    component_prompt_english_str = ''
+                component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']}{component_prompt_english_str}"
+                cols_prompt_words[component_word_idx].write(component_prompt_str)
 
     # Prompt to submit or skip
     col1_submit, col2_submit = st.columns([0.5, 0.5])
@@ -346,6 +469,13 @@ elif st.session_state['gameplay_option'] == 'review_mode':
     display_review_mode()
 elif st.session_state['gameplay_option'] == 'review_shared':
     display_review_shared()
+elif st.session_state['gameplay_option'] == 'vocab':
+    st.write(f"Vocabulary # {st.session_state['current_index'] + 1} / {len(st.session_state['df'])}")
+    if st.session_state['submitted_guess']:
+        display_feedback_and_continue()
+    else:
+        display_vocab_prompt()
+    display_score_and_restart()
 else:
     st.write(f"Vocabulary # {st.session_state['current_index'] + 1} / {len(st.session_state['df'])}")
     if st.session_state['submitted_guess']:

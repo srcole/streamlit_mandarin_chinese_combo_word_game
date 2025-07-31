@@ -64,9 +64,9 @@ def load_google_sheet():
     df = pd.read_csv(sheet_url)[cols_keep]
     df = df[df['type'].isin(types_keep)].reset_index(drop=True)
     df = df.dropna(subset=['chinese', 'pinyin', 'english', 'id'])
-    df['priority'] = df['priority'].fillna(5)
-    df['known'] = df['known'].fillna(5)
-    df['quality'] = df['quality'].fillna(5)
+    df['priority'] = df['priority'].fillna(6)
+    df['known'] = df['known'].fillna(6)
+    df['quality'] = df['quality'].fillna(6)
     return df
 
 
@@ -74,6 +74,20 @@ def filter_raw_data(df_raw):
     df = df_raw[df_raw['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
     df = df[df['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
     df = df[df['quality'] <= st.session_state['max_quality_rating']].reset_index(drop=True)
+    df = df[df['type'].isin(st.session_state['vocab_types_eligible'])].reset_index(drop=True)
+    df = df[df['category1'].isin(st.session_state['vocab_cat_eligible'])].reset_index(drop=True)
+    df = df.sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
+    df = df.loc[np.roll(df.index, -st.session_state['starting_index'])].reset_index(drop=True)
+    return df
+
+
+def filter_raw_data_vocab(df_raw):
+    df = df_raw[df_raw['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
+    df = df[df['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
+    if st.session_state['prompt_show_chinese_combo'] == 'Yes':
+        df = df[df['quality'] <= st.session_state['max_quality_rating']].reset_index(drop=True)
+    df = df[df['type'].isin(st.session_state['vocab_types_eligible'])].reset_index(drop=True)
+    df = df[df['category1'].isin(st.session_state['vocab_cat_eligible'])].reset_index(drop=True)
     df = df.sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
     df = df.loc[np.roll(df.index, -st.session_state['starting_index'])].reset_index(drop=True)
     return df

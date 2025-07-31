@@ -8,8 +8,10 @@ def compute_number_of_component_words():
         return 4
     elif not pd.isna(st.session_state['problem_row']['word3']):
         return 3
-    else:
+    elif not pd.isna(st.session_state['problem_row']['word2']):
         return 2
+    else:
+        return 0
 
 
 def _longest_common_substring(s1, s2):
@@ -49,9 +51,12 @@ def evaluate_english_guess(guess, correct_options):
     
 
 def compute_guess_result():
-    if st.session_state['gameplay_option'] in ['easy', 'medium']:
+    if st.session_state['gameplay_option'] == 'easy':
         return evaluate_english_guess(st.session_state['current_english_guess'], st.session_state['problem_row']['english'])
-    elif st.session_state['gameplay_option'] == 'hard':
-        return (st.session_state['combo_word_guess'] == st.session_state['problem_row']['chinese'])
+    if st.session_state['gameplay_option'] == 'vocab':
+        if st.session_state['prompt_show_chinese'] == 'Yes':
+            return evaluate_english_guess(st.session_state['current_english_guess'], st.session_state['problem_row']['english'])
+        else:
+            return (st.session_state['combo_word_guess'] == st.session_state['problem_row']['chinese'])
     else:
         raise ValueError(f"Gameplay option '{st.session_state['gameplay_option']}' not yet supported")
