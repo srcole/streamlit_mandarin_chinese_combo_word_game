@@ -229,9 +229,9 @@ def display_not_in_game():
     st.session_state['n_example_words_display'] = col2c_vocopt.number_input('\# shared character words displayed', min_value=0, max_value=20, value=st.session_state['n_example_words_display'])
 
     col1_advopt, col2_advopt, col3_advopt = st.columns([0.33, 0.33, 0.34])
-    st.session_state['max_priority_rating'] = col1_advopt.number_input('Max. priority rating', min_value=1, max_value=5, value=st.session_state['max_priority_rating'])
-    st.session_state['min_known_rating'] = col2_advopt.number_input('Min. known rating', min_value=1, max_value=5, value=st.session_state['min_known_rating'])
-    st.session_state['max_quality_rating'] = col3_advopt.number_input('Max. combo quality rating', min_value=1, max_value=5, value=st.session_state['max_quality_rating'])
+    st.session_state['max_priority_rating'] = col1_advopt.selectbox('Max. priority rating', options=[1, 2, 3, 4, 5], index=st.session_state['max_priority_rating'] - 1)
+    st.session_state['min_known_rating'] = col2_advopt.selectbox('Min. known rating', options=[1, 2, 3, 4, 5], index=st.session_state['min_known_rating'] - 1)
+    st.session_state['max_quality_rating'] = col3_advopt.selectbox('Max. combo quality rating', options=[1, 2, 3, 4, 5], index=st.session_state['max_quality_rating'] - 1)
 
     col3a_vocopt, col3b_vocopt = st.columns([0.5, 0.5])
     st.session_state['vocab_types_eligible'] = col3a_vocopt.multiselect(
