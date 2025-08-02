@@ -26,6 +26,7 @@ session_state_var_defaults = {
     'percent_correct': 0,
     'n_component_words': 0,
     'df': None,
+    'df_english': None,
     'random_state': np.random.randint(0, 100000),
     'starting_index': 0,
     'max_priority_rating': 2,
@@ -114,7 +115,8 @@ def load_data():
         st.session_state['df'] = filter_raw_data_vocab(st.session_state['df_raw'])
 
     if st.session_state['gameplay_option'] == 'english':
-        st.session_state['df_english_raw'] = load_data_english()
+        if st.session_state['df_english'] is None:
+            st.session_state['df_english_raw'] = load_data_english()
         st.session_state['df_english'] = filter_raw_data_english(st.session_state['df_english_raw'])
     game_start_reset_session_state_vars()
 
@@ -203,7 +205,7 @@ def display_not_in_game():
     st.session_state['gameplay_option'] = st.radio("Select gameplay option",
         options=gameplay_options.keys(),
         format_func=lambda x: gameplay_options[x][0],
-        index=0,
+        # index=0,
         captions=[g[1] for g in gameplay_options.values()],
     )
     st.button(label = 'Start game', on_click=fn_button_clicked, kwargs={'button_name': 'start_game'})
@@ -252,6 +254,13 @@ def display_not_in_game():
         options=st.session_state['vocab_cat_all'],
         default=st.session_state['vocab_cat_eligible'],
     )
+
+    st.divider()
+    st.header('阿季 options')
+    col1a_engopt, col1b_engopt, col1c_engopt = st.columns([0.33, 0.33, 0.34])
+    st.session_state['max_priority_rating_english'] = col1a_engopt.selectbox('最高的优先', options=[1, 2, 3], index=2)
+    st.session_state['min_known_rating_english'] = col1b_engopt.selectbox('最低的记忆', options=[1, 2, 3], index=0)
+    st.session_state['prompt_type_english'] = col1c_engopt.selectbox('提示', options=['英文', '中文'], index=0)
 
     st.divider()
     st.header('Advanced options')
@@ -445,7 +454,7 @@ def display_full_vocab_english():
 
 def display_vocab_prompt_english():
     # Prompt for the guess
-    if st.session_state['prompt_show_chinese'] == 'Yes':
+    if st.session_state['prompt_type_english'] == '中文':
         st.text_input(label=f"{st.session_state['problem_row'][f'chinese']} in English:", max_chars=20, value='', key='current_english_guess', autocomplete='off')
     else:
         st.text_input(label=f"'{st.session_state['problem_row'][f'english']}' in Chinese:", max_chars=20, value='', key='combo_word_guess', autocomplete='off')

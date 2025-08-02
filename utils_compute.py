@@ -52,7 +52,7 @@ def evaluate_english_guess(guess, correct_options):
 
 def compute_guess_result():
     if st.session_state['gameplay_option'] == 'english':
-        if st.session_state['prompt_show_chinese'] == 'Yes':
+        if st.session_state['prompt_type_english'] == '中文':
             return evaluate_english_guess(st.session_state['current_english_guess'], st.session_state['problem_row']['english'])
         else:
             return (st.session_state['combo_word_guess'] == st.session_state['problem_row']['chinese'])

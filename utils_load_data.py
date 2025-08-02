@@ -100,8 +100,8 @@ def load_data_english():
 
 
 def filter_raw_data_english(df_raw):
-    df = df_raw[df_raw['优先'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
-    df = df[df['记忆'] >= st.session_state['min_known_rating']].reset_index(drop=True)
+    df = df_raw[df_raw['优先'] <= st.session_state['max_priority_rating_english']].reset_index(drop=True)
+    df = df[df['记忆'] >= st.session_state['min_known_rating_english']].reset_index(drop=True)
     df = df.sort_values('english').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
     df = df.loc[np.roll(df.index, -st.session_state['starting_index'])].reset_index(drop=True)
     return df
