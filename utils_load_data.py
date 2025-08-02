@@ -49,6 +49,7 @@ def compute_shared_character_options(df_shared_char):
     df_by_char['n_words'] = df_by_char['chinese'].apply(lambda x: len(x.split(';')))
     return df_by_char.sort_values('n_words', ascending=False)
 
+
 def load_google_sheet():
     cols_keep = [
         'id', 'chinese', 'pinyin', 'english', 'type', 'priority', 'quality', 
@@ -70,17 +71,6 @@ def load_google_sheet():
     return df
 
 
-def filter_raw_data(df_raw):
-    df = df_raw[df_raw['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
-    df = df[df['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
-    df = df[df['quality'] <= st.session_state['max_quality_rating']].reset_index(drop=True)
-    df = df[df['type'].isin(st.session_state['vocab_types_eligible'])].reset_index(drop=True)
-    df = df[df['category1'].isin(st.session_state['vocab_cat_eligible'])].reset_index(drop=True)
-    df = df.sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
-    df = df.loc[np.roll(df.index, -st.session_state['starting_index'])].reset_index(drop=True)
-    return df
-
-
 def filter_raw_data_vocab(df_raw):
     df = df_raw[df_raw['priority'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
     df = df[df['known'] >= st.session_state['min_known_rating']].reset_index(drop=True)
@@ -89,5 +79,29 @@ def filter_raw_data_vocab(df_raw):
     df = df[df['type'].isin(st.session_state['vocab_types_eligible'])].reset_index(drop=True)
     df = df[df['category1'].isin(st.session_state['vocab_cat_eligible'])].reset_index(drop=True)
     df = df.sort_values('id').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
+    df = df.loc[np.roll(df.index, -st.session_state['starting_index'])].reset_index(drop=True)
+    return df
+
+
+def load_data_english():
+    cols_keep = [
+        'english', 'IPA pronounce', 'pronounce help',
+        '中文', '优先', '类型', '记忆', '难易', '例句', '定义'
+       ]
+    sheet_url = 'https://docs.google.com/spreadsheets/d/1pw9EAIvtiWenPDBFBIf7pwTh0FvIbIR0c3mY5gJwlDk/edit#gid=47045332'
+    sheet_url = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=')
+    df = pd.read_csv(sheet_url)[cols_keep]
+    df = df.dropna(subset=['中文', 'english'])
+    df = df.rename(columns={'中文': 'chinese'})
+    df['记忆'] = df['记忆'].fillna(1)
+    df['优先'] = df['优先'].fillna(3)
+    df['例句'] = df['例句'].fillna('')
+    return df
+
+
+def filter_raw_data_english(df_raw):
+    df = df_raw[df_raw['优先'] <= st.session_state['max_priority_rating']].reset_index(drop=True)
+    df = df[df['记忆'] >= st.session_state['min_known_rating']].reset_index(drop=True)
+    df = df.sort_values('english').sample(frac=1.0, random_state=st.session_state['random_state']).reset_index(drop=True)
     df = df.loc[np.roll(df.index, -st.session_state['starting_index'])].reset_index(drop=True)
     return df

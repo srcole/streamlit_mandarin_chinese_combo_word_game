@@ -6,9 +6,10 @@ from utils_compute import (
 )
 from utils_load_data import (
     load_google_sheet,
+    load_data_english,
+    filter_raw_data_english,
     compute_shared_character_df,
     compute_shared_character_options,
-    filter_raw_data,
     filter_raw_data_vocab
 )
 
@@ -74,7 +75,7 @@ gameplay_options = {
     'vocab': ('GUESS', 'Guess the vocabulary translation (settings below)', ':cow:'),
     'review_mode': ('REVIEW', 'See vocabulary translation and component words, without guessing', ':hatched_chick:'),
     'review_shared': ('SHARED CHARACTERS', 'See lists of words that all share a single character', ':hatched_chick:'),
-    'easy': ('OLD', '[legacy version] Guess the English translation given component definitions', ':cn:'),
+    'english': ('阿季', 'English', ':cn:'),
 }
 
 # Populate session state with defaults
@@ -98,7 +99,10 @@ def game_start_reset_session_state_vars():
     st.session_state['n_correct'] = 0
     st.session_state['percent_correct'] = 0
     st.session_state['n_streak'] = 0
-    st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
+    if st.session_state['gameplay_option'] == 'english':
+        st.session_state['problem_row'] = st.session_state['df_english'].loc[st.session_state['current_index']]
+    else:
+        st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
     st.session_state['page_icon'] = 'panda_face'
 
 
@@ -107,15 +111,15 @@ def load_data():
         st.session_state['df_raw'] = load_google_sheet()
         st.session_state['df_shared_char'] = compute_shared_character_df(st.session_state['df_raw'])
         st.session_state['df_shared_char_options'] = compute_shared_character_options(st.session_state['df_shared_char'])
-    if st.session_state['gameplay_option'] == 'easy':
-        st.session_state['df'] = filter_raw_data(st.session_state['df_raw'])
-    else:
         st.session_state['df'] = filter_raw_data_vocab(st.session_state['df_raw'])
+
+    if st.session_state['gameplay_option'] == 'english':
+        st.session_state['df_english_raw'] = load_data_english()
+        st.session_state['df_english'] = filter_raw_data_english(st.session_state['df_english_raw'])
     game_start_reset_session_state_vars()
 
 
 def restart_game():
-    # print('restart 1', session_state_var_defaults['game_started'])
     st.session_state['random_state'] = np.random.randint(0, 100000)
     st.session_state['game_started'] = False
     st.session_state['submitted_guess'] = False
@@ -146,8 +150,12 @@ def fix_wrongly_incorrect():
 def go_to_next_word():
     if st.session_state['submitted_guess']:
         st.session_state['current_index'] += 1
-        if st.session_state['current_index'] < len(st.session_state['df']):
-            st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
+        if st.session_state['gameplay_option'] == 'english':
+            if st.session_state['current_index'] < len(st.session_state['df_english']):
+                st.session_state['problem_row'] = st.session_state['df_english'].loc[st.session_state['current_index']]
+        else:
+            if st.session_state['current_index'] < len(st.session_state['df']):
+                st.session_state['problem_row'] = st.session_state['df'].loc[st.session_state['current_index']]
         st.session_state['current_english_guess'] = ''
         st.session_state['combo_word_guess'] = ''
         st.session_state['submitted_guess'] = False
@@ -378,34 +386,6 @@ def display_review_shared():
     st.session_state['submitted_guess'] = True
 
 
-def display_prompt():
-    # Compute the components
-    st.session_state['n_component_words'] = compute_number_of_component_words()
-    all_components_english = []
-    all_components_chinese = []
-    for component_word_idx in range(st.session_state['n_component_words']):
-        all_components_english.append(st.session_state['problem_row'][f'word{component_word_idx+1}_english'])
-        all_components_chinese.append(st.session_state['problem_row'][f'word{component_word_idx+1}'])
-
-    # Prompt for the guess
-    if st.session_state['gameplay_option'] == 'easy':
-        st.text_input(label=f"English translation of {st.session_state['problem_row'][f'chinese']} ({st.session_state['problem_row'][f'pinyin']})", max_chars=20, value='', key='current_english_guess', autocomplete='off')
-    else:
-        st.text_input(label=f"Chinese translation of '{st.session_state['problem_row'][f'english']}'", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
-
-    # If in component mode, give each component
-    if st.session_state['gameplay_option'] == 'easy':
-        cols_prompt_words = st.columns(st.session_state['n_component_words'])
-        for component_word_idx in range(st.session_state['n_component_words']):
-            component_prompt_str = f"Word {component_word_idx+1}: {st.session_state['problem_row'][f'word{component_word_idx+1}']} ({st.session_state['problem_row'][f'word{component_word_idx+1}_english']})"
-            cols_prompt_words[component_word_idx].write(component_prompt_str)
-
-    # Prompt to submit or skip
-    col1_submit, col2_submit = st.columns([0.5, 0.5])
-    col1_submit.button(label = 'Submit', on_click=fn_button_clicked, kwargs={'button_name': 'submit'})
-    col2_submit.button(label = 'Skip', on_click=fn_button_clicked, kwargs={'button_name': 'skip'})
-
-
 def display_vocab_prompt():
     # Prompt for the guess
     if st.session_state['prompt_show_chinese'] == 'Yes':
@@ -458,6 +438,32 @@ def display_score_and_restart():
     col2_score.write(f"Streak: {st.session_state['n_streak']}")
     col3_score.button(label = 'Restart game', on_click=fn_button_clicked, kwargs={'button_name': 'restart_game'})
 
+def display_full_vocab_english():
+    st.write(f"{st.session_state['problem_row']['english']} ({st.session_state['problem_row']['IPA pronounce']}) - {st.session_state['problem_row']['chinese']}")
+    st.write(f"{st.session_state['problem_row']['例句']}")
+
+
+def display_vocab_prompt_english():
+    # Prompt for the guess
+    if st.session_state['prompt_show_chinese'] == 'Yes':
+        st.text_input(label=f"{st.session_state['problem_row'][f'chinese']} in English:", max_chars=20, value='', key='current_english_guess', autocomplete='off')
+    else:
+        st.text_input(label=f"'{st.session_state['problem_row'][f'english']}' in Chinese:", max_chars=20, value='', key='combo_word_guess', autocomplete='off')
+
+    # Prompt to submit or skip
+    col1_submit, col2_submit = st.columns([0.5, 0.5])
+    col1_submit.button(label = 'Submit', on_click=fn_button_clicked, kwargs={'button_name': 'submit'})
+    col2_submit.button(label = 'Skip', on_click=fn_button_clicked, kwargs={'button_name': 'skip'})
+
+
+def display_feedback_and_continue_english():
+    display_feedback()
+    display_full_vocab_english()
+    col1_feedback, col2_feedback = st.columns([0.5, 0.5])
+    col1_feedback.button(label = 'Next word', on_click=fn_button_clicked, kwargs={'button_name': 'next_word'})
+    col2_feedback.button(label = "Wrongly marked as 'incorrect'", on_click=fn_button_clicked, kwargs={'button_name': 'wrongly_incorrect'})
+
+
 # Set up the page depending on gameplay state
 st.set_page_config(**page_configs)
 display_header()
@@ -476,10 +482,12 @@ elif st.session_state['gameplay_option'] == 'vocab':
     else:
         display_vocab_prompt()
     display_score_and_restart()
-else:
-    st.write(f"Vocabulary # {st.session_state['current_index'] + 1} / {len(st.session_state['df'])}")
+elif st.session_state['gameplay_option'] == 'english':
+    st.write(f"Vocabulary # {st.session_state['current_index'] + 1} / {len(st.session_state['df_english'])}")
     if st.session_state['submitted_guess']:
-        display_feedback_and_continue()
+        display_feedback_and_continue_english()
     else:
-        display_prompt()
+        display_vocab_prompt_english()
     display_score_and_restart()
+else:
+    st.write(f"Gameplay option {st.session_state['gameplay_option']} not valid")
