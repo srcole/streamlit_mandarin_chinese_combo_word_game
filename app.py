@@ -1,5 +1,6 @@
 import streamlit as st
 import numpy as np
+import unicodedata
 from utils_compute import (
     compute_number_of_component_words,
     compute_guess_result
@@ -447,10 +448,26 @@ def display_score_and_restart():
     col2_score.write(f"Streak: {st.session_state['n_streak']}")
     col3_score.button(label = 'Restart game', on_click=fn_button_clicked, kwargs={'button_name': 'restart_game'})
 
+def tmp_convert_str_to_number(whole_string):
+    current_sum = 0
+    for i_letter, letter in enumerate(whole_string):
+        current_sum += (ord(letter.lower()) - ord('a') + 10) * (i_letter + 1)
+    return current_sum
+
 def display_full_vocab_english():
     st.write(f"{st.session_state['problem_row']['english']} ({st.session_state['problem_row']['IPA pronounce']}) - {st.session_state['problem_row']['chinese']}")
     st.write(f"{st.session_state['problem_row']['例句']}")
 
+    if st.session_state['prompt_type_english'] == '中文':
+        st.write(f"Original : {st.session_state['current_english_guess']}, Result: {compute_guess_result()}")
+        st.write(f"String   : str({str(st.session_state['current_english_guess'])}), Result: {(str(st.session_state['current_english_guess']) == str(st.session_state['problem_row']['english']))}")
+        st.write(f"Integer  : {tmp_convert_str_to_number(st.session_state['current_english_guess'])}, {tmp_convert_str_to_number(st.session_state['problem_row']['english'])}, Result: {(tmp_convert_str_to_number(st.session_state['current_english_guess']) == tmp_convert_str_to_number(st.session_state['problem_row']['english']))}")
+        st.write(f"Unicode  : {unicodedata.normalize("NFD", st.session_state['current_english_guess'])}, {unicodedata.normalize("NFD", st.session_state['problem_row']['english'])}, Result: {(unicodedata.normalize("NFD", st.session_state['current_english_guess']) == unicodedata.normalize("NFD", st.session_state['problem_row']['english']))}")
+    else:
+        st.write(f"Original : {st.session_state['combo_word_guess']}, Result: {compute_guess_result()}")
+        st.write(f"String   : str({str(st.session_state['combo_word_guess'])}), Result: {(str(st.session_state['combo_word_guess']) == str(st.session_state['problem_row']['chinese']))}")
+        st.write(f"Integer  : {tmp_convert_str_to_number(st.session_state['combo_word_guess'])}, {tmp_convert_str_to_number(st.session_state['problem_row']['chinese'])}, Result: {(tmp_convert_str_to_number(st.session_state['combo_word_guess']) == tmp_convert_str_to_number(st.session_state['problem_row']['chinese']))}")
+        st.write(f"Unicode  : {unicodedata.normalize("NFD", st.session_state['combo_word_guess'])}, {unicodedata.normalize("NFD", st.session_state['problem_row']['chinese'])}, Result: {(unicodedata.normalize("NFD", st.session_state['combo_word_guess']) == unicodedata.normalize("NFD", st.session_state['problem_row']['chinese']))}")
 
 def display_vocab_prompt_english():
     # Prompt for the guess
